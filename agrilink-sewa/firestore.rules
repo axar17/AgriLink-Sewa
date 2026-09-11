@@ -1,0 +1,80 @@
+﻿rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // USERS COLLECTION
+    // Users can read their own profile, create upon registration
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // FARMERS COLLECTION
+    // Farmers manage their profile; Mandi operators can update verificationStatus
+    match /farmers/{farmerId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // TRANSPORTERS COLLECTION
+    // Transporters manage their fleet details and availability
+    match /transporters/{transporterId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // MANDI OPERATORS COLLECTION
+    match /mandiOperators/{operatorId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+    match /mandi_operators/{operatorId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // PROCUREMENT CENTERS
+    // Public read for slot booking; operators can update queue and status
+    match /procurementCenters/{centerId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // BOOKINGS (Queue & Gate Pass System)
+    // Farmers create bookings; Mandi operators update arrival and gate pass clearance
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // TRANSPORT REQUESTS
+    // Farmers post requests; Transporters accept and update delivery status
+    match /transportRequests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // TRIPS (Active Logistics Tracking)
+    // Transporters create and update trip milestones
+    match /trips/{tripId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+    }
+
+    // VERIFICATIONS
+    // Mandi operators record trust and gate entry audits
+    match /verifications/{verificationId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+  }
+}

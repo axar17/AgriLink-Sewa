@@ -1,0 +1,357 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mandi Operator Portal - AgriLink Sewa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        .stat-card { background: white; min-height: 100px; padding: 18px; border-radius: 9px; border: 1px solid #d9e0e8; box-shadow: 0 3px 10px rgba(0,0,0,.04); }
+        .stat-card.blue { border-top: 4px solid #4c73b9; }
+        .stat-card.orange { border-top: 4px solid #e6a23c; }
+        .stat-card.green { border-top: 4px solid #49a36b; }
+        .stat-card.red { border-top: 4px solid #dc5d5d; }
+        .panel { background: white; border: 1px solid #d9e0e8; border-radius: 9px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,.04); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; font-size: 11px; color: #667085; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; background: #fafbfc; }
+        td { padding: 14px 12px; border-bottom: 1px solid #edf0f3; font-size: 13px; vertical-align: middle; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen bg-[#f0f4f8]">
+
+    <!-- Top Government Banner -->
+    <div class="gov-top-bar sticky top-0 z-50">
+        <div><span data-i18n="govIndia">भारत सरकार | GOVERNMENT OF INDIA</span></div>
+        <div class="flex space-x-4 items-center">
+            <div class="relative flex items-center">
+                <i class="fas fa-language text-lg mr-1 text-white"></i>
+                <select id="languageSelect" class="bg-white text-[#123366] text-xs font-bold py-0.5 px-2 rounded cursor-pointer border border-gray-300 shadow-sm focus:outline-none" onchange="changeLanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                    <option value="gu">ગુજરાતી (Gujarati)</option>
+                    <option value="mr">मराठी (Marathi)</option>
+                </select>
+            </div>
+
+            <button id="logoutBtn" onclick="logoutUser()" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white font-bold transition text-xs flex items-center">
+                <i class="fas fa-sign-out-alt mr-1"></i> <span data-i18n="logout">Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Govt Header -->
+    <header class="bg-white border-b-[5px] border-[#123366] py-3 px-6 flex justify-between items-center shadow-sm sticky top-8 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="w-11 h-11 border-2 border-[#123366] rounded-full flex items-center justify-center text-2xl bg-[#eef3fb] text-[#123366]">
+                🏛️
+            </div>
+            <div>
+                <h1 id="portalTitle" class="text-xl md:text-2xl font-black text-[#123366] tracking-tight uppercase">MANDI OPERATOR PORTAL</h1>
+                <p id="portalSub" class="text-[11px] text-gray-500 font-bold uppercase tracking-wider">GATE & QUEUE MANAGEMENT SYSTEM</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- QR Gate Scanner Button -->
+            <button class="bg-[#123366] hover:bg-blue-900 text-white font-bold px-3.5 py-2 rounded text-xs transition flex items-center shadow" onclick="openQrScannerModal()" id="qrScanButton">
+                <i class="fas fa-qrcode mr-1.5 text-yellow-400 text-sm"></i> <span>Scan & Verify Pass QR</span>
+            </button>
+
+            <button class="bg-[#34733f] hover:bg-green-800 text-white font-bold px-3.5 py-2 rounded text-xs transition flex items-center shadow" onclick="openModal('arrivalModal')" id="manualButton">
+                <i class="fas fa-plus-circle mr-1.5"></i> <span>Manual Arrival</span>
+            </button>
+
+            <div class="border-l border-gray-300 pl-4 text-right">
+                <strong id="operatorText" class="text-xs font-bold text-[#123366] block">Operator: ADM-042</strong>
+                <small id="centerText" class="text-[11px] text-gray-500 font-semibold block">Gandhinagar Central APMC</small>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tricolor Strip -->
+    <div class="gov-tricolor sticky top-[88px] z-30 gov-banner">
+        <div class="saffron"></div><div class="white"></div><div class="green"></div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-6 py-6 flex-1 w-full">
+
+        <div class="mb-5 flex justify-between items-end">
+            <div>
+                <h2 id="welcomeTitle" class="text-2xl font-black text-[#123366] uppercase">Mandi Gate & Weighbridge Operations</h2>
+                <p id="welcomeText" class="text-gray-600 text-xs font-semibold mt-0.5">
+                    Real-time digital pass verification, weighing bridge token clearance & queue monitoring.
+                </p>
+            </div>
+        </div>
+
+        <!-- Statistics Grid -->
+        <section class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="stat-card blue">
+                <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Scheduled</div>
+                <div class="text-3xl font-black text-[#123366] mt-1" id="scheduledCount">3</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Waiting at Gate</div>
+                <div class="text-3xl font-black text-[#263548] mt-1" id="waitingCount">1</div>
+            </div>
+            <div class="stat-card green">
+                <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Cleared Today</div>
+                <div class="text-3xl font-black text-[#138808] mt-1" id="processedCount">18</div>
+            </div>
+            <div class="stat-card red">
+                <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Verification Pending</div>
+                <div class="text-3xl font-black text-red-600 mt-1" id="pendingCount">2</div>
+            </div>
+        </section>
+        <!-- Main Dashboard Grid -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- UPCOMING QUEUE -->
+            <div class="panel">
+                <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-[#123366] text-sm flex items-center">
+                        <i class="fas fa-clock mr-2 text-blue-700"></i> Upcoming & Waiting Queue
+                    </h3>
+                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">LIVE QUEUE</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-50 text-[11px] text-gray-500 uppercase">
+                                <th class="p-3">Time Slot</th>
+                                <th class="p-3">Farmer & Token</th>
+                                <th class="p-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queueBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- COMPLETED ENTRIES -->
+            <div class="panel">
+                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                    <h3 class="font-bold text-[#123366] text-sm flex items-center">
+                        <i class="fas fa-check-circle mr-2 text-green-700"></i> Cleared Gate Entries
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-50 text-[11px] text-gray-500 uppercase">
+                                <th class="p-3">Token No.</th>
+                                <th class="p-3">Farmer Name</th>
+                                <th class="p-3">Crop (Qty)</th>
+                                <th class="p-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completedBody">
+                            <tr class="border-b border-gray-100 text-xs">
+                                <td class="p-3 font-mono font-bold text-[#123366]">TKN-1001</td>
+                                <td class="p-3 font-bold">Suresh Patel</td>
+                                <td class="p-3 text-gray-600">Wheat (40 Qt)</td>
+                                <td class="p-3"><span class="badge-status badge-completed">✓ CLEARED GATE</span></td>
+                            </tr>
+                            <tr class="border-b border-gray-100 text-xs">
+                                <td class="p-3 font-mono font-bold text-[#123366]">TKN-1002</td>
+                                <td class="p-3 font-bold">Amit Singh</td>
+                                <td class="p-3 text-gray-600">Paddy (25 Qt)</td>
+                                <td class="p-3"><span class="badge-status badge-completed">✓ CLEARED GATE</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- FARMER VERIFICATION REQUESTS -->
+        <section class="panel mb-6">
+            <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-[#123366] text-sm flex items-center">
+                    <i class="fas fa-shield-alt mr-2 text-blue-800"></i> Farmer Verification & Authentication Requests
+                </h3>
+                <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded" id="pendingBadge">2 Pending</span>
+            </div>
+
+            <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4" id="verificationList">
+                <!-- FARMER 1 -->
+                <div class="border border-gray-200 rounded-lg p-4 bg-white shadow-sm flex flex-col justify-between" id="farmerCard1">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="font-bold text-sm text-[#123366]">👨‍🌾 Ramesh Patel</h4>
+                            <span class="text-[10px] bg-green-50 text-green-700 font-bold px-2 py-0.5 rounded border border-green-200">KCC Active</span>
+                        </div>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            Farmer ID: <b class="font-mono text-gray-800">AGRI-2026-001</b><br>
+                            Village: Rampur • Land Reg: Verified<br>
+                            Mobile: +91 98765 43210 (Aadhaar Linked)
+                        </p>
+                    </div>
+                    <div class="mt-3 flex gap-2 pt-2 border-t border-gray-100">
+                        <button onclick="handleVerifyAction('farmerCard1', 'Ramesh Patel', 'approved')" class="flex-1 bg-[#138808] hover:bg-green-800 text-white font-bold py-1.5 rounded text-xs">
+                            ✓ Approve
+                        </button>
+                        <button onclick="handleVerifyAction('farmerCard1', 'Ramesh Patel', 'rejected')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded text-xs">
+                            ✕ Reject
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FARMER 2 -->
+                <div class="border border-gray-200 rounded-lg p-4 bg-white shadow-sm flex flex-col justify-between" id="farmerCard2">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="font-bold text-sm text-[#123366]">👨‍🌾 Rajesh Sharma</h4>
+                            <span class="text-[10px] bg-green-50 text-green-700 font-bold px-2 py-0.5 rounded border border-green-200">KCC Active</span>
+                        </div>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            Farmer ID: <b class="font-mono text-gray-800">AGRI-2026-002</b><br>
+                            Village: Rajpur • Land Reg: Verified<br>
+                            Mobile: +91 98251 40921 (Aadhaar Linked)
+                        </p>
+                    </div>
+                    <div class="mt-3 flex gap-2 pt-2 border-t border-gray-100">
+                        <button onclick="handleVerifyAction('farmerCard2', 'Rajesh Sharma', 'approved')" class="flex-1 bg-[#138808] hover:bg-green-800 text-white font-bold py-1.5 rounded text-xs">
+                            ✓ Approve
+                        </button>
+                        <button onclick="handleVerifyAction('farmerCard2', 'Rajesh Sharma', 'rejected')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded text-xs">
+                            ✕ Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- REAL LIVE QR PASS SCANNER MODAL -->
+    <div class="modal" id="qrVerifyModal">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border border-gray-300">
+            <div class="bg-[#123366] text-white p-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📷</span>
+                    <div>
+                        <h3 class="font-black text-base uppercase">Digital Pass QR Gate Scanner</h3>
+                        <p class="text-[10px] text-gray-300 font-semibold">Instant weighbridge gate token verification</p>
+                    </div>
+                </div>
+                <button onclick="closeQrScannerModal()" class="text-white hover:text-gray-300 text-2xl font-bold">×</button>
+            </div>
+
+            <div class="p-6">
+                <!-- Scanner Mode Selector Tabs -->
+                <div class="flex gap-2 mb-4 border-b pb-2 text-xs font-bold">
+                    <button id="qrTabBtnDemo" onclick="switchQrScannerTab('demo')" class="px-3 py-1.5 rounded bg-[#123366] text-white">⚡ Quick 1-Click Demo</button>
+                    <button id="qrTabBtnCam" onclick="switchQrScannerTab('camera')" class="px-3 py-1.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200">📹 Live Device Camera</button>
+                    <button id="qrTabBtnFile" onclick="switchQrScannerTab('file')" class="px-3 py-1.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200">📁 Upload QR Image</button>
+                </div>
+
+                <!-- 1. Demo Mode Container -->
+                <div id="qrScanTabDemo" class="space-y-4">
+                    <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg text-center">
+                        <p class="text-xs text-blue-900 font-bold mb-2">Simulate scanning the current active pass generated in Farmer Portal:</p>
+                        <button onclick="testScanActiveToken('TKN-105')" class="bg-[#138808] hover:bg-green-800 text-white font-black py-2.5 px-6 rounded-lg text-xs uppercase shadow-md transition transform active:scale-95">
+                            <i class="fas fa-qrcode mr-1.5"></i> Scan Active Pass (TKN-105)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Camera Mode Container -->
+                <div id="qrScanTabCam" class="hidden space-y-3">
+                    <div id="qrCameraReader" style="width: 100%; min-height: 240px;" class="rounded-lg overflow-hidden border border-gray-300 bg-black"></div>
+                    <p class="text-[11px] text-gray-500 text-center font-semibold">Position the Farmer's QR code within the frame.</p>
+                </div>
+
+                <!-- 3. File Mode Container -->
+                <div id="qrScanTabFile" class="hidden space-y-3">
+                    <input type="file" id="qrFileInput" accept="image/*" class="w-full border border-gray-300 p-2 text-xs rounded">
+                    <div id="qrFileResult" class="text-xs font-bold text-gray-600"></div>
+                </div>
+
+                <!-- Scanned Result Card -->
+                <div id="scannedPassResultCard" class="hidden mt-4 bg-green-50 border-2 border-green-400 rounded-lg p-4 space-y-2">
+                    <div class="flex justify-between items-center border-b border-green-200 pb-2">
+                        <span class="text-xs font-black text-green-800 uppercase flex items-center gap-1">
+                            <i class="fas fa-check-circle text-green-600"></i> PASS VERIFIED & AUTHENTIC
+                        </span>
+                        <span class="font-mono text-sm font-black text-[#123366] bg-white px-2 py-0.5 rounded border" id="scannedTokenBadge">TKN-105</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                        <div>
+                            <span class="text-gray-500 font-bold block text-[10px] uppercase">Farmer:</span>
+                            <span id="scannedFarmerName" class="font-bold text-gray-800">Ramesh Patel</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 font-bold block text-[10px] uppercase">Slot Time:</span>
+                            <span id="scannedSlotTime" class="font-black text-green-700">10:15 AM</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 font-bold block text-[10px] uppercase">Commodity:</span>
+                            <span id="scannedCrop" class="font-bold text-gray-800">Wheat (40 Qt)</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 font-bold block text-[10px] uppercase">Center:</span>
+                            <span id="scannedMandi" class="font-bold text-[#123366]">Gandhinagar APMC</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button id="clearGateActionBtn" onclick="confirmScannedGateClearance()" class="w-full bg-[#138808] hover:bg-green-800 text-white font-black py-2.5 rounded-lg text-xs uppercase shadow-md flex items-center justify-center gap-1.5 transition">
+                            <i class="fas fa-check-double"></i> <span>✓ Approve Weighbridge Gate Entry</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MANUAL ARRIVAL MODAL -->
+    <div class="modal" id="arrivalModal">
+        <div class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-gray-300">
+            <div class="bg-[#123366] text-white p-4 flex justify-between items-center">
+                <h3 class="font-black text-sm uppercase">Register Manual Arrival</h3>
+                <button onclick="closeModal('arrivalModal')" class="text-white text-xl font-bold">×</button>
+            </div>
+            <div class="p-5 space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Farmer Name</label>
+                    <input type="text" id="manualName" placeholder="Enter farmer name" class="w-full border border-gray-300 rounded p-2 text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Crop</label>
+                    <select id="manualCrop" class="w-full border border-gray-300 rounded p-2 text-xs font-bold">
+                        <option>Wheat</option>
+                        <option>Paddy</option>
+                        <option>Mustard</option>
+                        <option>Cotton</option>
+                        <option>Maize</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Estimated Quantity (Quintals)</label>
+                    <input type="number" id="manualQuantity" value="30" class="w-full border border-gray-300 rounded p-2 text-xs font-bold">
+                </div>
+                <button onclick="registerManualEntry()" class="w-full bg-[#34733f] hover:bg-green-800 text-white font-bold py-2.5 rounded text-xs uppercase shadow mt-2">
+                    Register Gate Entry
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Govt Footer -->
+    <footer class="gov-footer">
+        <div class="max-w-7xl mx-auto text-center px-6">
+            <p data-i18n="nicCredit">Designed, Developed and Hosted by <strong>National Informatics Centre (NIC)</strong></p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="js/language.js"></script>
+    <script type="module" src="js/mandi.js"></script>
+</body>
+</html>

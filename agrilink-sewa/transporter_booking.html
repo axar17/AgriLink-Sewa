@@ -1,0 +1,376 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriLink Sewa | Farm Transport Coordination Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        .top-header { height: 78px; background: #fff; border-bottom: 2px solid #304d7d; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 100; }
+        .brand { display: flex; align-items: center; gap: 13px; }
+        .brand-logo { width: 43px; height: 43px; border-radius: 50%; border: 1.5px solid #8093b5; background: #f5f8fd; display: flex; align-items: center; justify-content: center; color: #304d7d; font-size: 20px; }
+        .brand-text h1 { margin: 0; color: #304d7d; font-size: 23px; font-weight: 800; }
+        .brand-text p { margin: 1px 0 0; color: #667085; font-size: 10px; font-weight: 700; }
+        .header-right { display: flex; align-items: center; gap: 14px; }
+        .page { max-width: 1140px; margin: auto; padding: 22px 18px 50px; }
+        .page-title { margin: 0 0 5px; color: #263b61; font-size: 22px; font-weight: 800; }
+        .page-subtitle { color: #667085; margin: 0 0 20px; font-size: 13px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 830px; margin-bottom: 20px; }
+        .stat-card { background: white; min-height: 86px; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-sm); padding: 18px 15px; position: relative; }
+        .stat-card.blue { border-color: #c7d8ef; }
+        .stat-card.green { border-color: #bfe0cb; }
+        .stat-label { color: #667085; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+        .stat-number { color: #27364a; font-size: 25px; font-weight: 800; margin-top: 6px; }
+        .stat-icon { position: absolute; right: 16px; top: 25px; font-size: 26px; color: #d7dde7; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { background: white; border: 1px solid #d8e0e9; border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden; min-height: 450px; }
+        .panel-head { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #dce3ec; background: #fbfcfe; }
+        .panel-title { margin: 0; color: #30405a; font-size: 14px; font-weight: 800; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 11px 12px; color: #667085; font-size: 10px; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #dfe5ec; background: #fafbfc; }
+        td { padding: 13px 12px; border-bottom: 1px solid #edf0f4; color: #4a5568; font-size: 12px; vertical-align: middle; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(20,29,43,.52); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal { width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; background: white; border-radius: 10px; box-shadow: 0 25px 70px rgba(0,0,0,.28); }
+        .vehicle-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .vehicle-card { border: 1px solid #d8e0e9; background: #fff; border-radius: 8px; padding: 12px 8px; cursor: pointer; text-align: center; transition: .2s; }
+        .vehicle-card:hover { border-color: #7794bd; background: #f7faff; }
+        .vehicle-card.selected { border: 2px solid #347843; background: #edf8f0; }
+        .vehicle-card i { color: #3561a5; font-size: 22px; margin-bottom: 6px; }
+        .vehicle-card.selected i { color: #347843; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group label { color: #344054; font-size: 11px; font-weight: 700; margin-bottom: 4px; display: block; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; border: 1px solid #cfd7e3; border-radius: 5px; padding: 9px 10px; font-size: 12px; outline: none; }
+        @media(max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: 1fr; } .vehicle-grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header class="top-header">
+        <div class="brand">
+            <div class="brand-logo">
+                <i class="fa-solid fa-warehouse"></i>
+            </div>
+            <div class="brand-text">
+                <h1 id="brandTitle">AGRILINK SEWA</h1>
+                <p id="brandSubtitle">FARM TRANSPORT MANAGEMENT SYSTEM</p>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <select id="language" class="language-select" onchange="changeLanguage(this.value)">
+                <option value="en">English</option>
+                <option value="hi">हिन्दी</option>
+                <option value="gu">ગુજરાતી</option>
+                <option value="mr">मराठी</option>
+            </select>
+
+            <button class="new-booking-btn bg-[#347843] hover:bg-green-800 text-white font-bold px-4 py-2 rounded text-xs flex items-center gap-2" onclick="openBookingModal()">
+                <i class="fa-solid fa-plus"></i> <span id="newBookingText">New Transport Booking</span>
+            </button>
+
+            <a href="farmer.html" class="text-xs font-bold text-[#123366] hover:underline flex items-center gap-1 border-l pl-3">
+                <i class="fas fa-arrow-left"></i> Farmer Portal
+            </a>
+        </div>
+    </header>
+
+    <!-- TRICOLOR STRIP -->
+    <div class="gov-tricolor">
+        <div class="saffron"></div><div class="white"></div><div class="green"></div>
+    </div>
+
+    <!-- MAIN PAGE -->
+    <main class="page">
+        <h2 class="page-title" id="pageTitle">Transport Dashboard</h2>
+        <p class="page-subtitle" id="pageSubtitle">Manage your transport bookings and track their status in real-time.</p>
+
+        <!-- STATS -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label" id="scheduledLabel">Total Bookings</div>
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-icon"><i class="fa-solid fa-calendar-days"></i></div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-label" id="waitingLabel">Pending / Waiting</div>
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-icon"><i class="fa-solid fa-truck-fast"></i></div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-label" id="processedLabel">Completed</div>
+                <div class="stat-number" id="completedCount">0</div>
+                <div class="stat-icon"><i class="fa-solid fa-check-double"></i></div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD GRID -->
+        <section class="dashboard-grid">
+            <!-- PENDING -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h3 class="panel-title"><i class="fa-solid fa-clock text-blue-600 mr-2"></i><span id="upcomingTitle">Upcoming & Pending Bookings</span></h3>
+                    <span class="live-badge bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">LIVE</span>
+                </div>
+                <div class="table-wrap overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Booking No.</th>
+                                <th>Vehicle</th>
+                                <th>Route</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTable">
+                            <tr><td colspan="4" class="text-center py-6 text-gray-400">Loading bookings...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- COMPLETED -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h3 class="panel-title"><i class="fa-solid fa-circle-check text-green-600 mr-2"></i><span id="completedTitle">Completed Transport Bookings</span></h3>
+                </div>
+                <div class="table-wrap overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Booking No.</th>
+                                <th>Vehicle</th>
+                                <th>Goods</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completedTable">
+                            <tr><td colspan="4" class="text-center py-6 text-gray-400">No completed transport bookings yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- BOOKING MODAL -->
+    <div class="modal-overlay" id="bookingModal">
+        <div class="modal">
+            <div class="p-4 border-b flex justify-between items-center bg-[#123366] text-white rounded-t-lg">
+                <h3 class="font-bold text-base" id="bookingModalTitle">New Transport Booking</h3>
+                <button class="text-white hover:text-gray-300 text-xl font-bold" onclick="closeBookingModal()">×</button>
+            </div>
+            <div class="p-6">
+                <!-- Vehicle Selection -->
+                <label class="text-xs font-bold text-gray-700 block mb-2">Select Transport Type *</label>
+                <div class="vehicle-grid">
+                    <button type="button" class="vehicle-card selected" onclick="selectTransportVehicle('Truck', this)">
+                        <i class="fa-solid fa-truck"></i>
+                        <span class="block text-xs font-bold mt-1">Truck</span>
+                    </button>
+                    <button type="button" class="vehicle-card" onclick="selectTransportVehicle('Tractor / Trolley', this)">
+                        <i class="fa-solid fa-tractor"></i>
+                        <span class="block text-xs font-bold mt-1">Tractor</span>
+                    </button>
+                    <button type="button" class="vehicle-card" onclick="selectTransportVehicle('Mini Vehicle', this)">
+                        <i class="fa-solid fa-truck-pickup"></i>
+                        <span class="block text-xs font-bold mt-1">Mini Vehicle</span>
+                    </button>
+                    <button type="button" class="vehicle-card" onclick="selectTransportVehicle('Goods Transport', this)">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span class="block text-xs font-bold mt-1">Goods Transport</span>
+                    </button>
+                </div>
+
+                <!-- Form -->
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Farmer Name *</label>
+                        <input id="farmerName" type="text" placeholder="Enter farmer name">
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile Number *</label>
+                        <input id="mobile" type="tel" placeholder="Enter mobile number">
+                    </div>
+                    <div class="form-group">
+                        <label>Pickup Location *</label>
+                        <input id="pickup" type="text" placeholder="Village / Farm location">
+                    </div>
+                    <div class="form-group">
+                        <label>Destination Mandi *</label>
+                        <input id="destination" type="text" placeholder="Gandhinagar Central APMC">
+                    </div>
+                    <div class="form-group">
+                        <label>Crop / Goods</label>
+                        <input id="goods" type="text" placeholder="e.g. Wheat, Paddy, Mustard">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity (Quintals / Bags)</label>
+                        <input id="quantity" type="number" placeholder="Enter quantity" value="40">
+                    </div>
+                    <div class="form-group">
+                        <label>Transport Date</label>
+                        <input id="transportDate" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Time</label>
+                        <input id="transportTime" type="time">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3 pt-4 border-t">
+                    <button class="px-4 py-2 border rounded text-xs font-bold hover:bg-gray-50" onclick="closeBookingModal()">Cancel</button>
+                    <button class="px-5 py-2 bg-[#347843] hover:bg-green-800 text-white rounded text-xs font-bold flex items-center gap-1.5" onclick="submitTransportRequest()">
+                        <i class="fas fa-check"></i> Submit Booking
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Govt Footer -->
+    <footer class="gov-footer">
+        <div class="max-w-7xl mx-auto text-center px-6">
+            <p data-i18n="nicCredit">Designed, Developed and Hosted by <strong>National Informatics Centre (NIC)</strong></p>
+        </div>
+    </footer>
+
+    <!-- Firebase Integration Logic -->
+    <script type="module">
+        import { db } from "./js/firebase-config.js";
+        import { 
+            collection, 
+            addDoc, 
+            doc, 
+            updateDoc, 
+            onSnapshot, 
+            query, 
+            orderBy, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { showToast } from "./js/common.js";
+        import { changeLanguage, formatNumber } from "./js/language.js";
+
+        let selectedVehicle = "Truck";
+
+        window.selectTransportVehicle = function(v, el) {
+            selectedVehicle = v;
+            document.querySelectorAll(".vehicle-card").forEach(c => c.classList.remove("selected"));
+            el.classList.add("selected");
+        };
+
+        window.openBookingModal = function() {
+            document.getElementById("bookingModal").classList.add("show");
+        };
+
+        window.closeBookingModal = function() {
+            document.getElementById("bookingModal").classList.remove("show");
+        };
+
+        // Real-time listener for transportRequests
+        const q = query(collection(db, "transportRequests"), orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const pendingTable = document.getElementById("pendingTable");
+            const completedTable = document.getElementById("completedTable");
+            pendingTable.innerHTML = "";
+            completedTable.innerHTML = "";
+
+            let total = snapshot.size;
+            let pending = 0;
+            let completed = 0;
+
+            snapshot.forEach((docSnap) => {
+                const req = docSnap.data();
+                const id = docSnap.id;
+                const status = req.status || "open";
+
+                if (status === "delivered" || status === "completed") {
+                    completed++;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="font-mono font-bold">${req.requestId || "TRN-" + id.slice(0, 4)}</td>
+                        <td><strong>${req.vehicleType || "Truck"}</strong></td>
+                        <td>${req.crop || "Wheat"} (${req.quantity || 40} Qt)</td>
+                        <td><span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">✓ COMPLETED</span></td>
+                    `;
+                    completedTable.appendChild(tr);
+                } else {
+                    pending++;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="font-mono font-bold">${req.requestId || "TRN-" + id.slice(0, 4)}</td>
+                        <td><strong>${req.vehicleType || "Truck"}</strong></td>
+                        <td>${req.pickupLocation || "Farm"} → <small class="text-gray-500">${req.destinationCenter || "Mandi"}</small></td>
+                        <td>
+                            <button class="bg-[#347843] hover:bg-green-800 text-white px-2.5 py-1 rounded text-xs font-bold" onclick="markTransportComplete('${id}')">
+                                Complete
+                            </button>
+                        </td>
+                    `;
+                    pendingTable.appendChild(tr);
+                }
+            });
+
+            if (pending === 0) pendingTable.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-gray-400">No pending bookings.</td></tr>`;
+            if (completed === 0) completedTable.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-gray-400">No completed bookings yet.</td></tr>`;
+
+            document.getElementById("totalCount").innerText = formatNumber(total);
+            document.getElementById("pendingCount").innerText = formatNumber(pending);
+            document.getElementById("completedCount").innerText = formatNumber(completed);
+        });
+
+        window.submitTransportRequest = async function() {
+            const name = document.getElementById("farmerName").value.trim();
+            const mobile = document.getElementById("mobile").value.trim();
+            const pickup = document.getElementById("pickup").value.trim();
+            const destination = document.getElementById("destination").value.trim() || "Gandhinagar Central APMC";
+            const goods = document.getElementById("goods").value.trim() || "Wheat";
+            const quantity = Number(document.getElementById("quantity").value) || 40;
+
+            if (!name || !pickup) {
+                showToast("Please enter Farmer Name and Pickup Location.", "error");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "transportRequests"), {
+                    requestId: "TRN-" + Math.floor(1000 + Math.random() * 9000),
+                    farmerName: name,
+                    farmerPhone: mobile,
+                    pickupLocation: pickup,
+                    destinationCenter: destination,
+                    crop: goods,
+                    quantity: quantity,
+                    vehicleType: selectedVehicle,
+                    status: "open",
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+
+                closeBookingModal();
+                showToast("✓ Transport request submitted to logistics network!");
+
+                document.getElementById("farmerName").value = "";
+                document.getElementById("mobile").value = "";
+                document.getElementById("pickup").value = "";
+            } catch (err) {
+                showToast("Failed to create booking: " + err.message, "error");
+            }
+        };
+
+        window.markTransportComplete = async function(id) {
+            try {
+                await updateDoc(doc(db, "transportRequests", id), {
+                    status: "completed",
+                    updatedAt: serverTimestamp()
+                });
+                showToast("Transport booking marked completed!");
+            } catch (e) {
+                showToast("Error updating booking: " + e.message, "error");
+            }
+        };
+    </script>
+</body>
+</html>

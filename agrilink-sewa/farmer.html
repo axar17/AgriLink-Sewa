@@ -1,0 +1,556 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>National Farmer Portal - AgriLink Sewa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        .view-section { display: none; animation: fadeIn 0.3s ease-out forwards; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .radar-pulse { position: relative; width: 100px; height: 100px; margin: auto; }
+        .radar-pulse::before, .radar-pulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #138808; animation: ripple 2s infinite ease-out; }
+        .radar-pulse::after { animation-delay: 1s; }
+        @keyframes ripple { 0% { transform: scale(0.3); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+        #farmerGpsMap { height: 380px; width: 100%; border-radius: 8px; z-index: 10; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen bg-[#f0f4f8]">
+
+    <!-- Top Government Banner -->
+    <div class="gov-top-bar sticky top-0 z-50">
+        <div><span data-i18n="govIndia">भारत सरकार | GOVERNMENT OF INDIA</span></div>
+        <div class="flex space-x-4 items-center">
+            <div class="relative flex items-center">
+                <i class="fas fa-language text-lg mr-1 text-white"></i>
+                <select id="langSwitcher" class="bg-white text-[#123366] text-xs font-bold py-0.5 px-2 rounded cursor-pointer border border-gray-300 shadow-sm focus:outline-none" onchange="changeLanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                    <option value="gu">ગુજરાતી (Gujarati)</option>
+                    <option value="mr">मराठी (Marathi)</option>
+                </select>
+            </div>
+            <button id="logoutBtn" onclick="logoutUser()" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white font-bold transition text-xs flex items-center">
+                <i class="fas fa-sign-out-alt mr-1"></i> <span data-i18n="logout">Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Govt Header -->
+    <header class="bg-white border-b-[5px] border-[#123366] py-3 px-6 flex justify-between items-center shadow-sm sticky top-8 z-40">
+        <div class="flex items-center space-x-4">
+            <button id="backBtn" onclick="goBack()" class="hidden hover:bg-gray-100 text-[#123366] h-10 w-10 rounded-full transition flex items-center justify-center border border-gray-300 shadow-sm">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-leaf text-4xl text-[#138808]"></i>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black text-[#123366] tracking-tight uppercase" data-i18n="brand">AgriLink Sewa</h1>
+                    <p class="text-[11px] text-gray-600 font-bold uppercase tracking-wider" data-i18n="farmerPortal">National Farmer Portal</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <div id="farmerVerifBadgeContainer">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
+                    <i class="fas fa-shield-alt mr-1"></i> VERIFIED FARMER
+                </span>
+            </div>
+            <div class="flex items-center space-x-3 bg-gray-50 px-4 py-2 rounded-sm border border-gray-300 shadow-inner">
+                <div class="text-right">
+                    <p id="userName" class="text-sm font-bold text-[#123366]">Ramesh Patel</p>
+                    <p class="text-xs text-gray-500 font-mono" data-i18n="roleFarmer">Farmer Account</p>
+                </div>
+                <div id="userInitials" class="h-10 w-10 bg-[#123366] text-white rounded-full flex items-center justify-center font-bold text-lg">
+                    R
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tricolor Strip -->
+    <div class="gov-tricolor sticky top-[88px] z-30 gov-banner">
+        <div class="saffron"></div><div class="white"></div><div class="green"></div>
+    </div>
+
+    <!-- Main Navigation Tab Bar -->
+    <div class="max-w-7xl mx-auto px-6 pt-5 w-full">
+        <div class="flex border-b-2 border-gray-300 bg-white rounded-t-lg shadow-sm p-1.5 gap-2">
+            <button id="tabBtnMandi" onclick="switchMainTab('mandi')" class="flex-1 py-3 px-4 text-center font-black text-sm uppercase tracking-wide rounded transition flex items-center justify-center gap-2 bg-[#123366] text-white shadow">
+                <i class="fas fa-warehouse text-yellow-400"></i>
+                <span>1. Mandi Slot Booking & Digital Gate Pass</span>
+            </button>
+            <button id="tabBtnTransport" onclick="switchMainTab('transport')" class="flex-1 py-3 px-4 text-center font-black text-sm uppercase tracking-wide rounded transition flex items-center justify-center gap-2 text-gray-600 hover:text-[#123366] hover:bg-gray-50">
+                <i class="fas fa-truck-moving text-green-600"></i>
+                <span>2. Uber / Porter Farm Transport (Live GPS)</span>
+            </button>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-6 py-6 flex-1 w-full relative">
+        <!-- ================= SECTION 1: MANDI DROP-OFF & GATE PASS ================= -->
+        <div id="section-mandi">
+            
+            <div id="view-dashboard" class="view-section active">
+                <div class="flex flex-wrap justify-between items-end mb-6 border-b border-gray-300 pb-4 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-[#123366] uppercase" data-i18n="farmerDashboardTitle"><i class="fas fa-tractor mr-2 text-gray-500"></i> Procurement Dashboard</h2>
+                        <p class="text-gray-600 mt-1 font-semibold" data-i18n="farmerDashboardSub">Schedule your crop drop-off and manage digital gate passes.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white border border-gray-300 shadow-sm px-4 py-2 rounded-sm flex items-center space-x-3">
+                            <i class="fas fa-map-marker-alt text-[#f68920] text-xl"></i>
+                            <div>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider" data-i18n="activeRegion">Active Region</p>
+                                <p class="font-black text-[#123366] text-lg leading-none">PIN: <span id="userPin">382480</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bookingFlowContainer">
+                    <div class="bg-white border border-gray-300 p-4 rounded-sm shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-2 flex-1 min-w-[300px]">
+                            <label class="text-xs font-bold text-[#123366] uppercase whitespace-nowrap"><i class="fas fa-map-pin text-[#f68920] mr-1"></i> Search By PIN:</label>
+                            <input type="text" id="searchPinInput" maxlength="6" value="382480" placeholder="Enter 6-digit PIN" class="border border-gray-300 p-2 text-sm font-mono font-bold rounded-sm w-44 focus:outline-none focus:border-[#123366]">
+                            <button id="searchPinBtn" onclick="handlePinSearch()" class="bg-[#123366] hover:bg-blue-900 text-white font-bold px-4 py-2 rounded-sm text-xs uppercase tracking-wider transition shadow-sm flex items-center gap-1.5">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <button id="clearPinBtn" onclick="resetToUserPin()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-bold px-3 py-2 rounded-sm text-xs transition">
+                                Reset
+                            </button>
+                        </div>
+                        <div id="pinLocationBadge" class="text-xs font-semibold text-gray-700 bg-gray-50 px-3 py-1.5 rounded border border-gray-200">
+                            <span class="text-gray-400">Resolved Location:</span> <strong id="resolvedLocationText">Gandhinagar, Gujarat</strong>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-[#123366] text-lg flex items-center border-l-4 border-[#138808] pl-2" data-i18n="nearbyCenters">
+                            Available Procurement Centers
+                        </h3>
+                        <span class="text-xs text-gray-500 font-bold">15-Min Slots Available</span>
+                    </div>
+                    
+                    <div id="procurementCentersGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+                </div>
+                <!-- Active Gate Pass Container -->
+                <div id="activePassContainer" class="hidden">
+                    <div class="flex justify-between items-end mb-4">
+                        <h3 class="font-bold text-[#123366] text-lg flex items-center border-l-4 border-[#138808] pl-2">
+                            Your Active Gate Pass
+                        </h3>
+                        <div class="flex items-center gap-3">
+                            <span id="dashPassStatusBadge">
+                                <span class="badge-status badge-active"><i class="fas fa-calendar-check"></i> Booked</span>
+                            </span>
+                            <span class="text-xs text-[#123366] font-bold bg-blue-50 px-3 py-1 rounded-sm border border-blue-200 uppercase">
+                                <i class="fas fa-lock mr-1"></i> Dashboard Locked until Drop-off
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-sm shadow-xl border border-gray-300 flex overflow-hidden max-w-5xl">
+                        <div class="bg-[#138808] w-8 flex flex-col justify-center items-center">
+                            <span class="transform -rotate-90 text-white font-black tracking-widest uppercase text-sm whitespace-nowrap">Valid Pass</span>
+                        </div>
+
+                        <div class="flex-1 p-8 grid grid-cols-3 gap-6 relative">
+                            <div class="col-span-3 border-b border-gray-200 pb-4 mb-2 flex justify-between items-start">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Destination Mandi</p>
+                                    <p id="dashPassCenter" class="font-black text-xl text-[#123366] uppercase">Gandhinagar Central APMC</p>
+                                    <p id="dashPassCrop" class="text-xs text-gray-600 font-semibold mt-0.5">Wheat (40 Qt)</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Token ID</p>
+                                    <p id="dashPassToken" class="font-mono font-black text-2xl text-[#123366] bg-gray-100 px-3 py-1 border border-gray-300 rounded-sm">TKN-105</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Farmer</p>
+                                <p id="dashPassName" class="font-bold text-md text-gray-800">Ramesh Patel</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Reporting Date</p>
+                                <p class="font-bold text-md text-gray-800">Tomorrow</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-[#138808] font-bold uppercase tracking-wider">Assigned Time Slot</p>
+                                <p id="dashPassSlot" class="font-black text-lg text-[#138808]">10:15 AM</p>
+                            </div>
+                            
+                            <div class="absolute -right-4 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-[#f0f4f8] rounded-full border-l border-gray-300"></div>
+                        </div>
+
+                        <!-- Real Working ISO QR Container -->
+                        <div class="w-64 bg-gray-50 border-l-2 border-dashed border-gray-300 p-6 flex flex-col justify-center items-center">
+                            <div id="dashPassQrContainer" class="w-full flex justify-center"></div>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase mt-3 text-center">Scan at weighing bridge</p>
+                            <button onclick="window.print()" class="mt-2 text-xs text-[#123366] font-bold hover:underline no-print uppercase flex items-center gap-1">
+                                <i class="fas fa-print"></i> <span>Print Pass</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: CONTINUOUS SLOT SELECTION -->
+            <div id="view-slots" class="view-section">
+                <div class="bg-white rounded-sm shadow-xl border border-gray-300 overflow-hidden">
+                    <div class="bg-[#123366] text-white p-6 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xs text-gray-300 font-bold uppercase tracking-wider">Booking Slot For</h3>
+                            <h2 id="displayCenterName" class="text-2xl font-black mt-1 uppercase">Mandi Name</h2>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-sm font-bold text-[#f68920]">Date: Tomorrow</span>
+                            <span class="block text-xs text-gray-300">15-Minute Intervals</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-8">
+                        <div id="allSlots" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 3: CONFIRM BOOKING -->
+            <div id="view-confirm" class="view-section">
+                <div class="max-w-3xl mx-auto">
+                    <h2 class="text-xl font-black text-[#123366] mb-6 text-center border-b-2 border-gray-300 pb-2 uppercase">Review & Confirm Request</h2>
+                    
+                    <div class="bg-white rounded-sm shadow-xl border border-gray-300 overflow-hidden">
+                        <div class="bg-gray-100 text-[#123366] p-4 border-b border-gray-300">
+                            <h3 class="text-md font-bold uppercase flex items-center"><i class="fas fa-clipboard-check mr-2 text-gray-500"></i> Citizen Details Verification</h3>
+                        </div>
+                        
+                        <div class="p-8 space-y-6">
+                            <div class="grid grid-cols-2 gap-8 border-b border-gray-200 pb-6">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Farmer Name</p>
+                                    <p id="confirmFarmerName" class="font-bold text-[#123366] text-lg mt-1 uppercase">Ramesh Patel</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Registered PIN Code</p>
+                                    <p id="confirmFarmerPin" class="font-mono font-bold text-[#123366] text-lg mt-1 bg-gray-50 inline-block px-2 border border-gray-200">382480</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-8 border-b border-gray-200 pb-6">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Destination</p>
+                                    <p id="confirmCenter" class="font-bold text-[#123366] text-lg mt-1 uppercase">Gandhinagar Central APMC</p>
+                                </div>
+                                <div class="bg-green-50 p-4 rounded-sm border border-green-200">
+                                    <p class="text-[10px] text-[#138808] font-bold uppercase tracking-wider">Arrival Time Slot</p>
+                                    <p id="confirmSlot" class="font-black text-[#138808] text-2xl mt-1">10:15 AM</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1">Crop Name</label>
+                                    <select id="bookingCropSelect" class="w-full border border-gray-300 rounded p-2 text-sm font-semibold">
+                                        <option value="Wheat">Wheat (गेहूं)</option>
+                                        <option value="Paddy">Paddy (धान)</option>
+                                        <option value="Mustard">Mustard (सरसों)</option>
+                                        <option value="Cotton">Cotton (कपास)</option>
+                                        <option value="Maize">Maize (मक्का)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1">Estimated Quantity (Quintals)</label>
+                                    <input type="number" id="bookingQuantityInput" value="40" min="1" class="w-full border border-gray-300 rounded p-2 text-sm font-bold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-gray-50 border-t border-gray-300">
+                            <button id="finalSubmitBtn" onclick="submitBooking()" class="w-full bg-[#138808] hover:bg-green-800 text-white font-bold py-3 rounded-sm shadow-md transition text-lg uppercase tracking-wide flex justify-center items-center">
+                                <i class="fas fa-lock mr-3"></i> <span>Confirm & Generate Digital Pass</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 4: PASS SUCCESS -->
+            <div id="view-pass" class="view-section">
+                <div class="max-w-4xl mx-auto mt-6">
+                    <div class="text-center mb-8 border-b-2 border-[#138808] pb-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4 border-2 border-[#138808]">
+                            <i class="fas fa-check text-3xl text-[#138808]"></i>
+                        </div>
+                        <h2 class="text-2xl font-black text-[#123366] tracking-tight uppercase">Booking Registered Successfully</h2>
+                        <p class="text-gray-600 mt-2 text-sm font-semibold">Your Digital Pass is linked with the National Mandi Database.</p>
+                    </div>
+
+                    <div class="bg-white rounded-sm shadow-2xl border border-gray-400 flex overflow-hidden print-sheet">
+                        <div class="bg-[#138808] w-10 flex flex-col justify-center items-center">
+                            <span class="transform -rotate-90 text-white font-black tracking-widest uppercase text-lg whitespace-nowrap">Gate Pass</span>
+                        </div>
+
+                        <div class="flex-1 p-10 grid grid-cols-3 gap-8 relative">
+                            <div class="col-span-3 border-b border-gray-300 pb-6 mb-4 flex justify-between items-start">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Destination Mandi</p>
+                                    <p id="passCenter" class="font-black text-2xl text-[#123366] mt-1 uppercase">Gandhinagar Central APMC</p>
+                                    <p id="passCrop" class="text-sm text-gray-600 font-semibold mt-1">Wheat (40 Qt)</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Token ID</p>
+                                    <p id="passToken" class="font-mono font-black text-2xl text-[#123366] bg-gray-100 px-4 py-2 border border-gray-400 mt-1 shadow-inner">TKN-105</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Farmer</p>
+                                <p id="passFarmerName" class="font-bold text-lg text-gray-800 mt-1 uppercase">Ramesh Patel</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Date</p>
+                                <p class="font-bold text-lg text-gray-800 mt-1">Tomorrow</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-[#138808] font-bold uppercase tracking-wider">Arrival Time</p>
+                                <p id="passSlot" class="font-black text-xl text-[#138808] mt-1">10:15 AM</p>
+                            </div>
+                            
+                            <div class="absolute -right-5 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-[#f0f4f8] rounded-full border-l border-gray-400"></div>
+                        </div>
+
+                        <div class="w-72 bg-gray-50 border-l-2 border-dashed border-gray-400 p-8 flex flex-col justify-center items-center">
+                            <div id="passQrContainer" class="w-full flex justify-center"></div>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase mt-4 text-center">Scan at weighing bridge</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 text-center no-print">
+                        <button onclick="goHome()" class="bg-white border border-[#123366] text-[#123366] hover:bg-gray-50 font-bold py-2.5 px-6 rounded-sm shadow-sm transition text-sm uppercase mr-4">
+                            Return to Dashboard
+                        </button>
+                        <button onclick="window.print()" class="bg-[#123366] hover:bg-blue-900 text-white font-bold py-2.5 px-6 rounded-sm shadow-sm transition text-sm uppercase">
+                            <i class="fas fa-print mr-2"></i> <span>Print Ticket</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- ================= SECTION 2: UBER / PORTER FARM TRANSPORT BOOKING ================= -->
+        <div id="section-transport" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <div class="lg:col-span-5 space-y-4">
+                    <div id="uberBookingForm" class="bg-white p-6 rounded-lg border border-gray-300 shadow-md">
+                        <div class="flex items-center justify-between border-b pb-3 mb-4">
+                            <div>
+                                <h3 class="font-black text-[#123366] text-lg uppercase flex items-center gap-2">
+                                    <i class="fas fa-truck text-[#138808]"></i> Farm Logistics
+                                </h3>
+                                <p class="text-xs text-gray-500 font-semibold">Uber/Porter style automated vehicle booking</p>
+                            </div>
+                            <span class="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Instant Match</span>
+                        </div>
+
+                        <label class="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">1. Select Vehicle Type</label>
+                        <div class="grid grid-cols-2 gap-2.5 mb-4">
+                            <div id="veh-card-tractor" onclick="window.rideController.selectVehicle('tractor')" class="uber-vehicle-card p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-600 transition bg-white text-center">
+                                <div class="text-2xl text-[#123366] mb-1">🚜</div>
+                                <p class="text-xs font-bold text-gray-800">Tractor / Trolley</p>
+                                <p class="text-[10px] text-gray-500 font-semibold">30-40 Qt • ₹300 Base</p>
+                            </div>
+
+                            <div id="veh-card-chhota_hathi" onclick="window.rideController.selectVehicle('chhota_hathi')" class="uber-vehicle-card selected border-2 border-[#138808] bg-green-50 p-3 rounded-lg cursor-pointer hover:border-green-600 transition text-center">
+                                <div class="text-2xl text-[#123366] mb-1">🛻</div>
+                                <p class="text-xs font-bold text-gray-800">Tata Ace</p>
+                                <p class="text-[10px] text-gray-500 font-semibold">15-18 Qt • ₹250 Base</p>
+                            </div>
+
+                            <div id="veh-card-pickup" onclick="window.rideController.selectVehicle('pickup')" class="uber-vehicle-card p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-600 transition bg-white text-center">
+                                <div class="text-2xl text-[#123366] mb-1">🚚</div>
+                                <p class="text-xs font-bold text-gray-800">Pickup 8ft</p>
+                                <p class="text-[10px] text-gray-500 font-semibold">25 Qt • ₹350 Base</p>
+                            </div>
+
+                            <div id="veh-card-heavy_truck" onclick="window.rideController.selectVehicle('heavy_truck')" class="uber-vehicle-card p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-600 transition bg-white text-center">
+                                <div class="text-2xl text-[#123366] mb-1">🚛</div>
+                                <p class="text-xs font-bold text-gray-800">Heavy Truck</p>
+                                <p class="text-[10px] text-gray-500 font-semibold">70-100 Qt • ₹600 Base</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 mb-4">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-xs font-bold text-gray-700 uppercase">Pickup Location (Farm Gate)</label>
+                                    <button type="button" id="locateMeBtn" onclick="window.farmerGpsMapInstance.locateUser()" class="text-[10px] text-blue-700 hover:text-blue-900 font-bold flex items-center gap-1">
+                                        <i class="fas fa-crosshairs"></i> Use My GPS
+                                    </button>
+                                </div>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-green-600 font-bold">🟢</span>
+                                    <input type="text" id="transportPickupLocation" value="Village Rampur (Farm Gate 4)" class="w-full border border-gray-300 rounded p-2 pl-8 text-xs font-semibold focus:outline-none focus:border-[#123366]">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Destination Mandi</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-blue-800 font-bold">🏛️</span>
+                                    <input type="text" id="transportDestinationLocation" value="Gandhinagar Central APMC (Gate 1)" class="w-full border border-gray-300 rounded p-2 pl-8 text-xs font-semibold bg-gray-50" readonly>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Crop</label>
+                                    <input type="text" id="transportCrop" value="Wheat (गेहूं)" class="w-full border border-gray-300 rounded p-1.5 text-xs font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Quantity (Bags)</label>
+                                    <input type="number" id="transportQty" value="50" class="w-full border border-gray-300 rounded p-1.5 text-xs font-bold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3.5 mb-4 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Estimated Trip Fare</p>
+                                <p id="estimatedFareAmount" class="text-2xl font-black text-[#123366]">₹400</p>
+                                <p id="fareBaseRate" class="text-[10px] text-gray-500 font-semibold">Base: ₹250 + ₹22/km (~6.8 km)</p>
+                            </div>
+                            <span class="text-xs bg-green-100 text-green-800 font-bold px-2 py-1 rounded border border-green-200">
+                                Direct Driver Payout
+                            </span>
+                        </div>
+
+                        <button onclick="handleUberBookingSubmit()" class="w-full bg-[#138808] hover:bg-green-800 text-white font-black py-3 rounded-lg shadow-lg text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition transform active:scale-95">
+                            <i class="fas fa-satellite-dish"></i>
+                            <span>Book Transport Now (Uber Style)</span>
+                        </button>
+                    </div>
+
+                    <div id="uberSearchingRadar" class="hidden bg-white p-8 rounded-lg border border-gray-300 shadow-md text-center">
+                        <div class="radar-pulse mb-6 flex items-center justify-center">
+                            <i class="fas fa-truck-moving text-3xl text-[#123366]"></i>
+                        </div>
+                        <h4 class="font-black text-lg text-[#123366] uppercase">Finding Nearby Transporters...</h4>
+                        <p class="text-xs text-gray-600 mt-1 font-semibold">Connecting with verified drivers near PIN: <span class="font-mono text-black font-bold">382480</span></p>
+                        <div class="mt-4 inline-block bg-yellow-50 text-yellow-800 text-[11px] font-bold px-3 py-1 rounded-full border border-yellow-200">
+                            <i class="fas fa-bell mr-1"></i> Transporter receives live chime alert
+                        </div>
+                    </div>
+
+                    <div id="uberDriverMatchedCard" class="hidden bg-white rounded-lg border-2 border-[#138808] shadow-xl overflow-hidden">
+                        <div class="bg-[#138808] text-white p-4 flex justify-between items-center">
+                            <div>
+                                <span class="text-[10px] uppercase font-bold text-green-200 tracking-wider">Driver Assigned</span>
+                                <h4 id="matchedDriverName" class="font-black text-lg leading-tight">Rajesh Kumar Logistics</h4>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-green-200 block uppercase font-bold">Ride OTP</span>
+                                <span id="matchedRideOtp" class="text-2xl font-mono font-black text-yellow-300 tracking-widest bg-green-900 px-2.5 py-0.5 rounded">4821</span>
+                            </div>
+                        </div>
+
+                        <div class="p-4 space-y-3">
+                            <div class="flex justify-between items-center border-b pb-3">
+                                <div>
+                                    <p id="matchedVehicleNo" class="font-mono font-bold text-base text-[#123366]">GJ-01-AB-1234</p>
+                                    <p id="matchedVehicleType" class="text-xs text-gray-500 font-semibold">Tata Ace / Chhota Hathi • 4.9 ★</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase">Estimated Fare</p>
+                                    <p id="matchedTripFare" class="font-black text-[#123366] text-lg">₹400</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p id="matchedRideStatusText" class="text-xs font-bold text-[#138808] mb-2 flex items-center gap-1.5">
+                                    <i class="fas fa-circle text-[8px] animate-ping"></i> Driver is on the way to your farm
+                                </p>
+                                <div class="grid grid-cols-4 gap-1 text-[9px] text-center uppercase font-bold">
+                                    <div id="milestone_enroute" class="p-1.5 rounded border border-gray-200 bg-green-100 text-green-700">1. En Route</div>
+                                    <div id="milestone_arrived" class="p-1.5 rounded border border-gray-200 text-gray-400">2. At Farm</div>
+                                    <div id="milestone_transit" class="p-1.5 rounded border border-gray-200 text-gray-400">3. In Transit</div>
+                                    <div id="milestone_mandi" class="p-1.5 rounded border border-gray-200 text-gray-400">4. At Mandi</div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 flex gap-2">
+                                <a href="tel:9825140921" class="flex-1 bg-[#123366] hover:bg-blue-900 text-white font-bold py-2 rounded text-xs text-center flex items-center justify-center gap-1.5">
+                                    <i class="fas fa-phone-alt"></i> <span id="matchedDriverPhone">Call Driver</span>
+                                </a>
+                                <button onclick="window.farmerGpsMapInstance.startLiveAnimation(15)" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded text-xs flex items-center justify-center gap-1.5">
+                                    <i class="fas fa-route"></i> Simulate GPS Move
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7">
+                    <div class="bg-white p-4 rounded-lg border border-gray-300 shadow-md">
+                        <div class="flex flex-wrap justify-between items-center pb-3 mb-3 border-b gap-2">
+                            <div>
+                                <h3 class="font-black text-[#123366] text-base uppercase flex items-center gap-2">
+                                    <i class="fas fa-satellite text-blue-600"></i> Live GPS Vehicle Tracking
+                                </h3>
+                                <p class="text-[11px] text-gray-500 font-semibold font-mono" id="gpsCoords">23.1850° N, 72.5850° E</p>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <div class="bg-gray-100 px-2.5 py-1 rounded text-center border border-gray-200">
+                                    <span class="text-[9px] text-gray-500 uppercase font-bold block">Speed</span>
+                                    <span id="gpsSpeed" class="text-xs font-mono font-black text-[#123366]">38 km/h</span>
+                                </div>
+                                <div class="bg-gray-100 px-2.5 py-1 rounded text-center border border-gray-200">
+                                    <span class="text-[9px] text-gray-500 uppercase font-bold block">Distance</span>
+                                    <span id="gpsDistance" class="text-xs font-mono font-black text-[#123366]">6.8 km</span>
+                                </div>
+                                <div class="bg-green-50 px-2.5 py-1 rounded text-center border border-green-200">
+                                    <span class="text-[9px] text-green-700 uppercase font-bold block">ETA</span>
+                                    <span id="gpsEta" class="text-xs font-mono font-black text-green-800">12 mins</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="farmerGpsMap"></div>
+
+                        <div class="mt-3 flex justify-between items-center text-[11px] text-gray-500 font-semibold">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-full bg-[#138808] inline-block"></span> Pickup Farm
+                                <span class="w-3 h-3 rounded-full bg-[#123366] inline-block ml-2"></span> APMC Mandi
+                                <span class="w-3 h-3 rounded-full bg-[#f68920] inline-block ml-2"></span> Moving Vehicle
+                            </span>
+                            <span class="font-mono text-[10px] text-gray-400">OpenStreetMap © Leaflet</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="gov-footer">
+        <div class="max-w-7xl mx-auto text-center px-6">
+            <p data-i18n="nicCredit">Designed, Developed and Hosted by <strong>National Informatics Centre (NIC)</strong></p>
+        </div>
+    </footer>
+
+    <script type="module" src="js/language.js"></script>
+    <script type="module" src="js/farmer.js"></script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorized Login - AgriLink Sewa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        .dynamic-fields { display: none; }
+        .dynamic-fields.active { display: block; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Top Government Banner -->
+    <div class="gov-top-bar">
+        <div>
+            <span data-i18n="govIndia">भारत सरकार | GOVERNMENT OF INDIA</span>
+            <span class="ml-4 opacity-75 hidden md:inline" data-i18n="govDept">Department of Consumer Affairs</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="tracking-widest font-mono text-[11px] cursor-pointer hidden sm:inline">Skip to Main Content | A- | A | A+</span>
+            
+            <!-- Language Switcher -->
+            <div class="relative ml-2 flex items-center">
+                <i class="fas fa-language text-lg mr-1 text-white"></i>
+                <select id="langSwitcher" class="bg-white text-[#123366] text-xs font-bold py-0.5 px-2 rounded cursor-pointer border border-gray-300 shadow-sm focus:outline-none" onchange="changeLanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                    <option value="gu">ગુજરાતી (Gujarati)</option>
+                    <option value="mr">मराठी (Marathi)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Govt Header -->
+    <header class="gov-header">
+        <div class="gov-brand">
+            <div class="gov-logo-icon">
+                <i class="fas fa-leaf text-[#138808]"></i>
+            </div>
+            <div>
+                <h1 data-i18n="brand">AgriLink Sewa</h1>
+                <p data-i18n="brandSub">Ministry of Consumer Affairs, Food & Public Distribution</p>
+            </div>
+        </div>
+        <div class="text-right hidden sm:block">
+            <h2 class="text-lg font-bold text-[#f68920] uppercase tracking-wide">AgriLink</h2>
+            <p class="text-[10px] text-gray-500 font-bold">National Logistics Network</p>
+        </div>
+    </header>
+
+    <!-- Main Content Box -->
+    <main class="flex-1 flex items-center justify-center p-6">
+        <div class="w-full max-w-md bg-white rounded-md shadow-2xl overflow-hidden border border-gray-300 mt-4 mb-4">
+            
+            <!-- Tricolor Strip -->
+            <div class="gov-tricolor">
+                <div class="saffron"></div><div class="white"></div><div class="green"></div>
+            </div>
+
+            <!-- ================= LOGIN SECTION ================= -->
+            <div id="login-section" class="p-8">
+                <h2 class="text-xl font-bold text-[#123366] border-b-2 border-gray-200 pb-2 mb-6 uppercase flex items-center">
+                    <i class="fas fa-sign-in-alt mr-2 text-gray-500"></i>
+                    <span data-i18n="authorizedLogin">Authorized Login</span>
+                </h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Registered Email ID <span class="text-red-500">*</span></label>
+                        <input type="email" id="loginEmail" class="w-full border border-gray-400 rounded-sm p-2 text-sm focus:outline-none focus:border-[#123366]" placeholder="Enter Registered Email">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
+                        <input type="password" id="loginPassword" class="w-full border border-gray-400 rounded-sm p-2 text-sm focus:outline-none focus:border-[#123366]" placeholder="Enter Password">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Select User Type <span class="text-red-500">*</span></label>
+                        <select id="loginRole" class="w-full border border-gray-400 rounded-sm p-2 text-sm focus:outline-none focus:border-[#123366] bg-gray-50 font-bold text-gray-700">
+                            <option value="farmer">Kisan (Farmer)</option>
+                            <option value="transporter">Logistics Partner (Transporter)</option>
+                            <option value="mandi_operator">Mandi Operator (Official)</option>
+                        </select>
+                    </div>
+                    
+                    <button id="loginSubmitBtn" onclick="loginUser()" class="w-full bg-[#123366] hover:bg-blue-900 text-white font-bold py-2.5 rounded-sm shadow-md transition mt-4 text-sm uppercase tracking-wide flex items-center justify-center">
+                        <i class="fas fa-lock mr-2"></i> <span data-i18n="secureLogin">Secure Login</span>
+                    </button>
+                </div>
+
+                <div class="mt-6 text-center border-t border-gray-200 pt-4">
+                    <p class="text-xs text-gray-600 font-semibold">
+                        Don't have a registered account? 
+                        <button onclick="toggleAuthView('register')" class="text-blue-700 hover:text-red-600 font-bold underline ml-1">New User Registration</button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- ================= REGISTRATION SECTION ================= -->
+            <div id="register-section" class="p-8 hidden">
+                <h2 class="text-xl font-bold text-[#123366] border-b-2 border-gray-200 pb-2 mb-6 uppercase flex items-center">
+                    <i class="fas fa-user-plus mr-2 text-gray-500"></i>
+                    <span data-i18n="citizenReg">Citizen Registration</span>
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+                            <input type="email" id="regEmail" class="w-full border border-gray-400 rounded-sm p-2 text-sm" placeholder="Email">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
+                            <input type="password" id="regPassword" class="w-full border border-gray-400 rounded-sm p-2 text-sm" placeholder="Min 6 chars">
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-50 p-3 rounded-sm border border-yellow-200">
+                        <label class="block text-xs font-bold text-[#123366] mb-1">Select Registration Category <span class="text-red-500">*</span></label>
+                        <select id="regRole" onchange="switchRegFields()" class="w-full border border-gray-400 rounded-sm p-2 text-sm focus:border-[#123366] font-bold text-gray-700">
+                            <option value="farmer">Kisan (Farmer)</option>
+                            <option value="transporter">Logistics Partner (Transporter)</option>
+                            <option value="mandi_operator">Mandi Admin / Official</option>
+                        </select>
+                    </div>
+
+                    <!-- 1. FARMER FIELDS -->
+                    <div id="fields-farmer" class="dynamic-fields active bg-gray-50 p-4 rounded-sm border border-gray-300 shadow-inner">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-2">Farmer Details</p>
+                        <div class="space-y-3">
+                            <input type="text" id="f_name" placeholder="Full Name as per Aadhaar / KCC" class="w-full border border-gray-300 p-2 text-sm rounded-sm">
+                            <input type="tel" id="f_phone" placeholder="Mobile Number (10 digits)" maxlength="10" class="w-full border border-gray-300 p-2 text-sm rounded-sm">
+                            <input type="text" id="f_pin" placeholder="Village PIN Code (e.g. 382480)" maxlength="6" class="w-full border border-gray-300 p-2 text-sm rounded-sm font-mono">
+                        </div>
+                    </div>
+
+                    <!-- 2. TRANSPORTER FIELDS -->
+                    <div id="fields-transporter" class="dynamic-fields bg-gray-50 p-4 rounded-sm border border-gray-300 shadow-inner">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-2">Transporter Details</p>
+                        <div class="space-y-3">
+                            <input type="text" id="t_name" placeholder="Driver / Fleet Owner Name" class="w-full border border-gray-300 p-2 text-sm rounded-sm">
+                            <input type="text" id="t_vehicle" placeholder="Vehicle Reg No (e.g. GJ18BT4021)" class="w-full border border-gray-300 p-2 text-sm rounded-sm uppercase font-mono">
+                            <input type="text" id="t_pin" placeholder="Base Operation PIN Code" maxlength="6" class="w-full border border-gray-300 p-2 text-sm rounded-sm font-mono">
+                        </div>
+                    </div>
+
+                    <!-- 3. MANDI OPERATOR FIELDS -->
+                    <div id="fields-mandi_operator" class="dynamic-fields bg-gray-50 p-4 rounded-sm border border-gray-300 shadow-inner">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-2">Official Details</p>
+                        <div class="space-y-3">
+                            <input type="text" id="o_name" placeholder="Official Name" class="w-full border border-gray-300 p-2 text-sm rounded-sm">
+                            <input type="text" id="o_mandi" placeholder="Assigned Mandi / APMC Name" class="w-full border border-gray-300 p-2 text-sm rounded-sm">
+                            <input type="text" id="o_pin" placeholder="Mandi PIN Code" maxlength="6" class="w-full border border-gray-300 p-2 text-sm rounded-sm font-mono">
+                        </div>
+                    </div>
+                    
+                    <button id="regSubmitBtn" onclick="registerUser()" class="w-full bg-[#138808] hover:bg-green-700 text-white font-bold py-2.5 rounded-sm shadow-md transition mt-2 text-sm uppercase tracking-wide flex items-center justify-center">
+                        <i class="fas fa-check-circle mr-2"></i> Submit Registration
+                    </button>
+                </div>
+
+                <div class="mt-4 text-center border-t border-gray-200 pt-4">
+                    <p class="text-xs text-gray-600 font-semibold">
+                        Already Registered? 
+                        <button onclick="toggleAuthView('login')" class="text-blue-700 hover:text-red-600 font-bold underline ml-1">Go to Login</button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Demo Helper Strip for SIH Presentation -->
+            <div class="bg-gray-100 p-3 text-center border-t border-gray-200">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2">⚡ 1-Click Direct Role Launch:</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <a href="farmer.html" class="bg-green-700 hover:bg-green-800 text-white py-1.5 px-2 rounded font-bold text-xs shadow transition">🌾 Kisan</a>
+                    <a href="transporter_dashboard.html" class="bg-blue-800 hover:bg-blue-900 text-white py-1.5 px-2 rounded font-bold text-xs shadow transition">🚚 Transporter</a>
+                    <a href="mandi_operator.html" class="bg-[#123366] hover:bg-blue-950 text-white py-1.5 px-2 rounded font-bold text-xs shadow transition">🏛️ Mandi Admin</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Govt Footer -->
+    <footer class="gov-footer">
+        <div class="max-w-4xl mx-auto text-center px-4">
+            <p data-i18n="nicCredit">Designed, Developed and Hosted by <strong>National Informatics Centre (NIC)</strong></p>
+            <p class="text-gray-300 mt-1">Ministry of Electronics & Information Technology, Government of India</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="js/language.js"></script>
+    <script type="module" src="js/login.js"></script>
+    <script type="module" src="js/seed-data.js"></script>
+    <script type="module">
+        import { injectUniversalPortalBar } from "./js/common.js";
+        injectUniversalPortalBar("login");
+    </script>
+</body>
+</html>
